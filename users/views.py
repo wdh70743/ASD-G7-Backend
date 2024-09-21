@@ -26,7 +26,7 @@ class CreateUserAPI(generics.GenericAPIView, mixins.CreateModelMixin):
         if 'password' in data:
             data['password'] = make_password(data['password'])
         else:
-            return Response({"error": "Password is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Password is required"}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -69,3 +69,49 @@ class LoginAPI(generics.GenericAPIView):
             return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
+                        mixins.RetrieveModelMixin,
+                        mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin
+):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    @swagger_auto_schema(
+        operation_description="Retrieve a specific user's details by their ID.",
+        responses={200: UserSerializer()}
+    )
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Update a specific user's details using PUT. Full object replacement.",
+        request_body=UserSerializer,
+        responses={200: UserSerializer()}
+    )
+    def put(self, request, *args, **kwargs):
+        data = request.data.copy()
+        if 'password' in data:
+            data['password'] = make_password(data['password'])
+        return self.update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Partially update a specific user's details using PATCH. Partial object update.",
+        request_body=UserSerializer,
+        responses={200: UserSerializer()}
+    )
+    def patch(self, request, *args, **kwargs):
+        data = request.data.copy()
+        if 'password' in data:
+            data['password'] = make_password(data['password'])
+        return self.partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Delete a specific user by their ID.",
+        responses={204: "No Content"}
+    )
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
