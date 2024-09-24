@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, mixins, status
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password, check_password
@@ -6,8 +7,10 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import User
 from .serializers import UserSerializer
+from django.utils.decorators import method_decorator
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class CreateUserAPI(generics.GenericAPIView, mixins.CreateModelMixin):
     serializer_class = UserSerializer
 
@@ -34,7 +37,7 @@ class CreateUserAPI(generics.GenericAPIView, mixins.CreateModelMixin):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginAPI(generics.GenericAPIView):
 
     @swagger_auto_schema(
@@ -70,7 +73,7 @@ class LoginAPI(generics.GenericAPIView):
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-
+@method_decorator(csrf_exempt, name='dispatch')
 class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
                         mixins.RetrieveModelMixin,
                         mixins.UpdateModelMixin,
