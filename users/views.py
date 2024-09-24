@@ -39,6 +39,7 @@ class CreateUserAPI(generics.GenericAPIView, mixins.CreateModelMixin):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginAPI(generics.GenericAPIView):
+    serializer_class = UserSerializer
 
     @swagger_auto_schema(
         operation_description="Login with email and password",
@@ -69,7 +70,8 @@ class LoginAPI(generics.GenericAPIView):
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
         if check_password(password, user.password):
-            return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
+            user_data = self.get_serializer(user).data
+            return Response({'message': 'Login successful', 'user': user_data}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
