@@ -86,7 +86,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
 
     @swagger_auto_schema(
         operation_description="Retrieve a specific user's details by their ID.",
-        responses={200: UserSerializer()}
+        responses={200: UserSerializer()},
+        tags=['Users'],
     )
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
@@ -94,7 +95,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
     @swagger_auto_schema(
         operation_description="Update a specific user's details using PUT. Full object replacement.",
         request_body=UserSerializer,
-        responses={200: UserSerializer()}
+        responses={200: UserSerializer()},
+        tags=['Users'],
     )
     def put(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -105,7 +107,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
     @swagger_auto_schema(
         operation_description="Partially update a specific user's details using PATCH. Partial object update.",
         request_body=UserSerializer,
-        responses={200: UserSerializer()}
+        responses={200: UserSerializer()},
+        tags=['Users'],
     )
     def patch(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -115,7 +118,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
 
     @swagger_auto_schema(
         operation_description="Delete a specific user by their ID.",
-        responses={204: "No Content"}
+        responses={204: "No Content"},
+        tags=['Users'],
     )
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
