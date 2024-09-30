@@ -17,8 +17,8 @@ STATUS_CHOICES = [
 class Task(models.Model):
     owner = models.ForeignKey("users.User", related_name="owned_tasks", on_delete=models.CASCADE)
     project = models.ForeignKey('project.Project', related_name="project_tasks", on_delete=models.CASCADE)
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Not_completed')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium', verbose_name="priority")
+    status = models.BooleanField(verbose_name="status", default=False)
     title = models.CharField(max_length=100, verbose_name="title")
     description = models.CharField(max_length=3000, verbose_name="description")
     start_date = models.DateTimeField(verbose_name="start_date")
