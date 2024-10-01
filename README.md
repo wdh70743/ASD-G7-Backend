@@ -199,6 +199,6 @@ Execute the test suite using the following command:
 
 - [X] **`Task 1`**: <strike>Implement R0.</strike>
 - [X] **`Task 2`**: <strike>Implement R1.</strike>
-- [ ] **`Task 3`**: Implement feature three.
+- [ ] **`Task 3`**: Implement R2.
 
 ---
