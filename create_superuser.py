@@ -1,14 +1,19 @@
 import os
+import sys
 import django
+
+# Add the parent directory of 'taskmanager' to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'taskmanager.settings')
+django.setup()
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 
 from taskmanager.project.models import Project
 from taskmanager.task.models import Task
 from taskmanager.users.models import User
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'taskmanager.settings')
-django.setup()
 
 
 User_obj = get_user_model()
