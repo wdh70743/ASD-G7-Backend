@@ -23,7 +23,6 @@
 
 #####  Table of Contents
 
-- [ Overview](#-overview)
 - [ Repository Structure](#-repository-structure)
 - [ Modules](#-modules)
 - [ Getting Started](#-getting-started)
@@ -32,12 +31,6 @@
     - [ Usage](#-usage)
     - [ Tests](#-tests)
 - [ Project Roadmap](#-project-roadmap)
-
----
-
-##  Overview
-
-Same environment across various platforms, thereby, enabling consistency and reliability in the execution of the projects functionalities. This is a comprehensive Django-based project designed to serve as the backend environment for an efficient TaskManager application. Leveraging containerization, the Dockerfile accentuates project setup by organizing the Python environment, executing dependencies installation, database migrations, and initiating the Django application. The integration of automated testing and deployment is expertly brought to life by azure-pipelines.yml, allowing for the seamless execution of Python tests across multiple versions, Docker image building, and pushing to DockerHub. It supports the continuous integration and delivery (CI/CD) process, playing a pivotal role in the project's efficiency and delivery speed.The project bolsters user management with create_superuser.py, automating the creation of superusers and enhancing the usability and maintainability of the application. manage.py serves as an effective command-line utility, streamlining administrative tasks and debugging, fostering easy project management. The requirements.txt file encapsulates all the project dependencies, ensuring the application's reliable execution across various platforms by maintaining the testing and deployment environment's consistency.In essence, ASD-G7-Backend is a robust, open-source tool that enhances task management through swift setup, streamlined user management, consistent testing and deployment, and reliable project execution. The value of this project lies in its efficiency, reliability, and maintainability, making it an invaluable resource in the realm of task management applications.
 
 ---
 
