@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 PRIORITY_CHOICES = [
     ('low', 'Low'),
@@ -6,23 +7,16 @@ PRIORITY_CHOICES = [
     ('high', 'High'),
 ]
 
-STATUS_CHOICES = [
-    ('not_started', 'Not Started'),
-    ('in_progress', 'In Progress'),
-    ('completed', 'Completed'),
-    ('on_hold', 'On Hold'),
-]
-# Create your models here.
 class Project(models.Model):
     projectname = models.CharField(max_length=50)
     description = models.TextField()
     start_date = models.DateField()
     end_date = models.DateField()
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    status = models.BooleanField(default=False, help_text='Indicates if the project is completed')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    users = models.ManyToManyField(User, related_name='projects')
 
     def __str__(self):
         return self.projectname
