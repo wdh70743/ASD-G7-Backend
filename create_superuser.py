@@ -11,15 +11,15 @@ django.setup()
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 
-from taskmanager.project.models import Project
-from taskmanager.task.models import Task
-from taskmanager.users.models import User
+from project.models import Project
+from task.models import Task
+from users.models import User
 
 
 User_obj = get_user_model()
 
 SUPERUSER_EMAIL = 'admin@admin.com'
-SUPERUSER_USERNAME = 'admin'
+SUPERUSER_USERNAME = 'admin1234'
 SUPERUSER_PASSWORD = '1234'
 
 if not User_obj.objects.filter(email=SUPERUSER_EMAIL).exists():
@@ -48,39 +48,48 @@ project_list = [
 for user_data in user_list:
     User.objects.create(username=user_data[0], email=user_data[1], password=make_password(user_data[2]))
 
-for idx, project_data in enumerate(project_list):
-    Project.objects.create(owner__id=idx,
+idx = 1
+for project_data in project_list:
+    owner = User.objects.get(id=idx)
+    Project.objects.create(owner=owner,
                            projectname=project_data[0],
                            description=project_data[1],
                            start_date=project_data[2],
                            end_date=project_data[3],
                            priority=project_data[4]
                            )
+    idx += 1
+owner_1 = User.objects.get(id=1)
+owner_2 = User.objects.get(id=2)
+owner_3 = User.objects.get(id=3)
+project_1 = Project.objects.get(id=1)
+project_2 = Project.objects.get(id=2)
+project_3 = Project.objects.get(id=3)
 Task.objects.create(
-    owner__id="1",
-    project__id="1",
+    owner=owner_1,
+    project=project_1,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Design Homepage Layout",
     description="Redesign the company website for better user experience.",
     start_date="2024-10-01",
     due_date="2024-10-08"
 )
 Task.objects.create(
-    owner__id="1",
-    project__id="1",
+    owner=owner_1,
+    project=project_1,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Setup Color Scheme",
     description="Finalize the color scheme based on the company's branding.",
     start_date="2024-10-01",
     due_date="2024-10-14"
 )
 Task.objects.create(
-    owner__id="1",
-    project__id="1",
+    owner=owner_1,
+    project=project_1,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Implement Mobile Responsive Design",
     description="Ensure the website is fully responsive across all devices.",
     start_date="2024-10-01",
@@ -88,30 +97,30 @@ Task.objects.create(
 )
 
 Task.objects.create(
-    owner__id="2",
-    project__id="2",
+    owner=owner_2,
+    project=project_2,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Build App Prototype",
     description="Create the initial prototype of the mobile app.",
     start_date="2024-10-01",
     due_date="2024-10-08"
 )
 Task.objects.create(
-    owner__id="2",
-    project__id="2",
+    owner=owner_2,
+    project=project_2,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Setup Backend API",
     description="Set up the backend API for the mobile app's functionality.",
     start_date="2024-10-01",
     due_date="2024-10-14"
 )
 Task.objects.create(
-    owner__id="2",
-    project__id="2",
+    owner=owner_2,
+    project=project_2,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Test App on Devices",
     description="Test the mobile app on different devices for compatibility.",
     start_date="2024-10-01",
@@ -119,30 +128,30 @@ Task.objects.create(
 )
 
 Task.objects.create(
-    owner__id="3",
-    project__id="3",
+    owner=owner_3,
+    project=project_3,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Analyze Legacy Data",
     description="Review legacy system data and create a migration strategy.",
     start_date="2024-10-01",
     due_date="2024-10-21"
 )
 Task.objects.create(
-    owner__id="3",
-    project__id="3",
+    owner=owner_3,
+    project=project_3,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Create Migration Scripts",
     description="Develop scripts to automate data migration from legacy systems.",
     start_date="2024-10-01",
     due_date="2024-10-21"
 )
 Task.objects.create(
-    owner__id="3",
-    project__id="3",
+    owner=owner_3,
+    project=project_3,
     priority="High",
-    status="Not_completed",
+    status=False,
     title="Validate Migrated Data",
     description="Ensure all data is correctly migrated and validated.",
     start_date="2024-10-01",
