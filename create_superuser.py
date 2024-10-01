@@ -1,13 +1,15 @@
 import os
 import django
 from django.contrib.auth import get_user_model
-from users.models import User
-from task.models import Task
-from project.models import Project
 from django.contrib.auth.hashers import make_password
+
+from taskmanager.project.models import Project
+from taskmanager.task.models import Task
+from taskmanager.users.models import User
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'taskmanager.settings')
 django.setup()
+
 
 User_obj = get_user_model()
 
@@ -141,4 +143,3 @@ Task.objects.create(
     start_date="2024-10-01",
     due_date="2024-10-21"
 )
-
