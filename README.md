@@ -205,7 +205,7 @@ Execute the test suite using the following command:
 ##  Project Roadmap
 
 - [X] **`Task 1`**: <strike>Implement R0.</strike>
-- [ ] **`Task 2`**: <strike>Implement R1.</strike>
+- [X] **`Task 2`**: <strike>Implement R1.</strike>
 - [ ] **`Task 3`**: Implement feature three.
 
 ---
