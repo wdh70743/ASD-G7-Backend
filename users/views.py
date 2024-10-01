@@ -39,6 +39,7 @@ class CreateUserAPI(generics.GenericAPIView, mixins.CreateModelMixin):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginAPI(generics.GenericAPIView):
+    serializer_class = UserSerializer
 
     @swagger_auto_schema(
         operation_description="Login with email and password",
@@ -69,7 +70,8 @@ class LoginAPI(generics.GenericAPIView):
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
         if check_password(password, user.password):
-            return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
+            user_data = self.get_serializer(user).data
+            return Response({'message': 'Login successful', 'user': user_data}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -84,7 +86,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
 
     @swagger_auto_schema(
         operation_description="Retrieve a specific user's details by their ID.",
-        responses={200: UserSerializer()}
+        responses={200: UserSerializer()},
+        tags=['Users'],
     )
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
@@ -92,7 +95,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
     @swagger_auto_schema(
         operation_description="Update a specific user's details using PUT. Full object replacement.",
         request_body=UserSerializer,
-        responses={200: UserSerializer()}
+        responses={200: UserSerializer()},
+        tags=['Users'],
     )
     def put(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -103,7 +107,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
     @swagger_auto_schema(
         operation_description="Partially update a specific user's details using PATCH. Partial object update.",
         request_body=UserSerializer,
-        responses={200: UserSerializer()}
+        responses={200: UserSerializer()},
+        tags=['Users'],
     )
     def patch(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -113,7 +118,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
 
     @swagger_auto_schema(
         operation_description="Delete a specific user by their ID.",
-        responses={204: "No Content"}
+        responses={204: "No Content"},
+        tags=['Users'],
     )
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)

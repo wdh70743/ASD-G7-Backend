@@ -7,3 +7,4 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = ('status', 'priority')
 
 admin.site.register(Project, ProjectAdmin)
+
