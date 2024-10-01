@@ -2,12 +2,13 @@ from django.db import models
 from django.contrib.auth.models import User
 
 PRIORITY_CHOICES = [
-    ('low', 'Low'),
-    ('medium', 'Medium'),
-    ('high', 'High'),
+    ('Low', 'Low'),
+    ('Medium', 'Medium'),
+    ('High', 'High'),
 ]
 
 class Project(models.Model):
+    owner = models.ForeignKey("users.User", related_name="owned_projects", on_delete=models.CASCADE)
     projectname = models.CharField(max_length=50)
     description = models.TextField()
     start_date = models.DateField()
