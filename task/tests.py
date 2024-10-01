@@ -18,7 +18,10 @@ class TaskAPITestCase(TestCase):
             email='wdh70743@gmail.com',
             password=make_password('1234'),
         )
-        self.project = Project.objects.create(projectname="TEST_PROJECT", description="TEST", start_date=datetime.now(),
+        self.project = Project.objects.create(owner=self.user,
+                                              projectname="TEST_PROJECT",
+                                              description="TEST",
+                                              start_date=datetime.now(),
                                               end_date=datetime.now())
         self.task = Task.objects.create(
             owner=self.user,
