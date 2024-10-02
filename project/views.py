@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.contrib.auth.models import User
+from users.models import User
 from rest_framework import generics, status, mixins
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -33,14 +33,23 @@ class CreateProjectAPI(generics.GenericAPIView, mixins.CreateModelMixin):
     )
     def post(self, request, *args, **kwargs):
         user_ids = request.data.get('user_ids', [])
-        users = User.objects.filter(id__in=user_ids)
+        owner_id = request.data.get('owner')
 
+        try:
+            owner = User.objects.get(id=owner_id)
+        except User.DoesNotExist:
+            return Response({"error": "Owner ID is invalid."}, status=status.HTTP_400_BAD_REQUEST)
+
+        users = User.objects.filter(id__in=user_ids)
         if len(users) != len(user_ids):
             return Response({"error": "One or more user IDs are invalid"}, status=status.HTTP_400_BAD_REQUEST)
 
+        request_data = request.data.copy()
+        request_data['owner'] = owner.id
+
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            project = serializer.save()
+            project = serializer.save(owner = owner)
             project.users.set(users)
             project.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -134,4 +143,3 @@ class ListUserProjectsAPI(generics.GenericAPIView, mixins.ListModelMixin):
     )
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
-
