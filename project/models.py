@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import User
 
 PRIORITY_CHOICES = [
     ('Low', 'Low'),
@@ -8,7 +7,7 @@ PRIORITY_CHOICES = [
 ]
 
 class Project(models.Model):
-    owner = models.ForeignKey("users.User", related_name="owned_projects", on_delete=models.CASCADE)
+    owner = models.ForeignKey("users.user", related_name="owned_projects", on_delete=models.CASCADE)
     projectname = models.CharField(max_length=50)
     description = models.TextField()
     start_date = models.DateField()
@@ -17,7 +16,7 @@ class Project(models.Model):
     status = models.BooleanField(default=False, help_text='Indicates if the project is completed')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    users = models.ManyToManyField(User, related_name='projects')
+    users = models.ManyToManyField("users.user", related_name='projects')
 
     def __str__(self):
         return self.projectname
