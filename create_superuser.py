@@ -15,7 +15,7 @@ from project.models import Project
 from task.models import Task
 from users.models import User
 
-
+from datetime import datetime, timedelta
 User_obj = get_user_model()
 
 SUPERUSER_EMAIL = 'admin@admin.com'
@@ -65,6 +65,8 @@ owner_3 = User.objects.get(id=3)
 project_1 = Project.objects.get(id=1)
 project_2 = Project.objects.get(id=2)
 project_3 = Project.objects.get(id=3)
+current_date = datetime.now().date()
+
 Task.objects.create(
     owner=owner_1,
     project=project_1,
@@ -72,8 +74,8 @@ Task.objects.create(
     status=False,
     title="Design Homepage Layout",
     description="Redesign the company website for better user experience.",
-    start_date="2024-10-01",
-    due_date="2024-10-08"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
 Task.objects.create(
     owner=owner_1,
@@ -82,8 +84,8 @@ Task.objects.create(
     status=False,
     title="Setup Color Scheme",
     description="Finalize the color scheme based on the company's branding.",
-    start_date="2024-10-01",
-    due_date="2024-10-14"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
 Task.objects.create(
     owner=owner_1,
@@ -92,8 +94,8 @@ Task.objects.create(
     status=False,
     title="Implement Mobile Responsive Design",
     description="Ensure the website is fully responsive across all devices.",
-    start_date="2024-10-01",
-    due_date="2024-10-21"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
 
 Task.objects.create(
@@ -103,8 +105,8 @@ Task.objects.create(
     status=False,
     title="Build App Prototype",
     description="Create the initial prototype of the mobile app.",
-    start_date="2024-10-01",
-    due_date="2024-10-08"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
 Task.objects.create(
     owner=owner_2,
@@ -113,8 +115,8 @@ Task.objects.create(
     status=False,
     title="Setup Backend API",
     description="Set up the backend API for the mobile app's functionality.",
-    start_date="2024-10-01",
-    due_date="2024-10-14"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
 Task.objects.create(
     owner=owner_2,
@@ -123,8 +125,8 @@ Task.objects.create(
     status=False,
     title="Test App on Devices",
     description="Test the mobile app on different devices for compatibility.",
-    start_date="2024-10-01",
-    due_date="2024-10-21"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
 
 Task.objects.create(
@@ -134,8 +136,8 @@ Task.objects.create(
     status=False,
     title="Analyze Legacy Data",
     description="Review legacy system data and create a migration strategy.",
-    start_date="2024-10-01",
-    due_date="2024-10-21"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
 Task.objects.create(
     owner=owner_3,
@@ -144,8 +146,8 @@ Task.objects.create(
     status=False,
     title="Create Migration Scripts",
     description="Develop scripts to automate data migration from legacy systems.",
-    start_date="2024-10-01",
-    due_date="2024-10-21"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
 Task.objects.create(
     owner=owner_3,
@@ -154,6 +156,6 @@ Task.objects.create(
     status=False,
     title="Validate Migrated Data",
     description="Ensure all data is correctly migrated and validated.",
-    start_date="2024-10-01",
-    due_date="2024-10-21"
+    start_date=current_date - timedelta(days=7),
+    due_date=current_date
 )
