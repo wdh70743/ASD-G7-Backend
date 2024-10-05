@@ -9,6 +9,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Project
 from .serializers import ProjectSerializer
+from django.db.models import Q
 
 # Create your views here.
 
@@ -134,7 +135,7 @@ class ListUserProjectsAPI(generics.GenericAPIView, mixins.ListModelMixin):
 
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        return Project.objects.filter(users__id=user_id)  # Filter projects by user ID
+        return Project.objects.filter(Q(users__id=user_id) | Q(owner__id=user_id))  # Filter projects by user ID
 
     @swagger_auto_schema(
         operation_description="Retrieve a list of all projects for a specific user.",
