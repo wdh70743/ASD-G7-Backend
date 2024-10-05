@@ -20,7 +20,7 @@ class ProjectAPITests(APITestCase):
             priority="Medium",
             status=False
         )
-        self.project.users.add(self.user1, self.user2)
+        self.project.users.add(self.user2)
 
         self.client = APIClient()
 
@@ -34,7 +34,7 @@ class ProjectAPITests(APITestCase):
             "end_date": "2024-12-31",
             "priority": "Medium",
             "status": False,
-            "user_ids": [self.user1.id, self.user2.id]
+            "user_ids": [self.user2.id]
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
