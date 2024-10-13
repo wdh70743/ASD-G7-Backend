@@ -10,7 +10,7 @@ from drf_yasg import openapi
 from .models import Project
 from .serializers import ProjectSerializer
 from django.db.models import Q
-
+from users.serializers import UserSerializer
 # Create your views here.
 
 
@@ -144,3 +144,44 @@ class ListUserProjectsAPI(generics.GenericAPIView, mixins.ListModelMixin):
     )
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SearchUserInProjectAPI(generics.GenericAPIView):
+    serializer_class = UserSerializer
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('email', openapi.IN_QUERY, description="Email filter", type=openapi.TYPE_STRING),
+            openapi.Parameter('project_id', openapi.IN_PATH, description="ID of the project", type=openapi.TYPE_INTEGER)
+        ],
+        responses={
+            200: openapi.Response('Users found', UserSerializer(many=True)),
+            400: 'Bad Request',
+            404: 'Project not found',
+        },
+        tags=['Projects'],
+    )
+    def get(self, request, *args, **kwargs):
+        project_id = self.kwargs['project_id']
+        email_query = request.GET.get('email', None)
+
+        if not project_id or not email_query:
+            return Response({'error': 'project_id and email must be provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = Project.objects.get(id=project_id)
+
+            users_in_project = project.users.filter(email__icontains=email_query)
+
+            user_data = self.get_serializer(users_in_project, many=True).data
+
+
+
+            if email_query.lower() in project.owner.email.lower():
+                owner_data = self.get_serializer(project.owner).data
+                user_data.insert(0, owner_data)
+
+            return Response(user_data, status=status.HTTP_200_OK)
+
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+

@@ -99,9 +99,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
         tags=['Users'],
     )
     def put(self, request, *args, **kwargs):
-        data = request.data.copy()
-        if 'password' in data:
-            data['password'] = make_password(data['password'])
+        if 'password' in request.data:
+            request.data['password'] = make_password(request.data['password'])
         return self.update(request, *args, **kwargs)
 
     @swagger_auto_schema(
@@ -111,9 +110,8 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
         tags=['Users'],
     )
     def patch(self, request, *args, **kwargs):
-        data = request.data.copy()
-        if 'password' in data:
-            data['password'] = make_password(data['password'])
+        if 'password' in request.data:
+            request.data['password'] = make_password(request.data['password'])
         return self.partial_update(request, *args, **kwargs)
 
     @swagger_auto_schema(
@@ -123,4 +121,37 @@ class RetrieveUpdateDestroyUserAPI(generics.GenericAPIView,
     )
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SearchUserByEmailAPI(generics.GenericAPIView):
+    serializer_class = UserSerializer
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'email',
+                openapi.IN_QUERY,
+                description="Email or partial email to search for users",
+                type=openapi.TYPE_STRING
+            )
+        ],
+        responses={
+            200: UserSerializer(many=True),  # Define the response type
+            400: 'Bad Request - Email parameter is missing'
+        },
+        tags=['Users'],
+    )
+    def get(self, request, *args, **kwargs):
+        email_query = request.GET.get('email', None)
+
+        if email_query:
+            users = User.objects.filter(email__icontains=email_query)
+
+            user_data = self.get_serializer(users, many=True).data
+
+            return Response(user_data, status=status.HTTP_200_OK)
+
+        return Response({'error': 'Email parameter is missing'}, status=status.HTTP_400_BAD_REQUEST)
+
 
