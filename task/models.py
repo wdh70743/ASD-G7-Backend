@@ -40,6 +40,9 @@ class UserTask(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="created_at")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="updated_at", null=True)
 
+    def __str__(self):
+        return f"{self.task} by {self.assigned_by}"
+
 
 class TaskComment(models.Model):
     owner = models.ForeignKey("users.User", related_name="task_comments", on_delete=models.CASCADE)
@@ -48,11 +51,17 @@ class TaskComment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="created_at")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="updated_at", null=True)
 
+    def __str__(self):
+        return f"{self.owner} -> {self.comment}"
+
 
 class TaskFile(models.Model):
     owner = models.ForeignKey("users.User", related_name="task_files", on_delete=models.CASCADE)
     task = models.ForeignKey("Task", related_name="files", on_delete=models.CASCADE)
     file_name = models.CharField(max_length=3000, verbose_name="file_name")
-    file_uri = models.FileField(upload_to="images/", verbose_name="file_uri")
+    file_uri = models.FileField(upload_to="task_files/", verbose_name="file_uri")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="created_at")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="updated_at", null=True)
+
+    def __str__(self):
+        return f"{self.owner} -> {self.file_name}"
