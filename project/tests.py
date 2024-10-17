@@ -9,6 +9,7 @@ class ProjectAPITests(APITestCase):
     def setUp(self):
         self.user1 = User.objects.create(username='user1', password='password1', email='user1@example.com')
         self.user2 = User.objects.create(username='user2', password='password2', email='user2@example.com')
+        self.user3 = User.objects.create(username='user3', password='password3', email='user3@example.com')
 
         # Create a sample project
         self.project = Project.objects.create(
@@ -80,3 +81,37 @@ class ProjectAPITests(APITestCase):
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)  # User1 is associated with 1 project
+
+    def test_search_user_in_project(self):
+        url = reverse('project-user-search', kwargs={'project_id': self.project.id})
+
+        response = self.client.get(f"{url}?email=user1", format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['email'], 'user1@example.com')
+
+        response = self.client.get(f"{url}?email=user2", format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['email'], 'user2@example.com')
+
+        response = self.client.get(f"{url}?email=user3", format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
+        response = self.client.get(f"{url}?email=user", format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)  # Should return both user1 and user2
+
+        response = self.client.get(f"{url}?email=USER1", format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['email'], 'user1@example.com')
+
+        url = reverse('project-user-search', kwargs={'project_id': 9999})
+        response = self.client.get(f"{url}?email=user1", format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        url = reverse('project-user-search', kwargs={'project_id': self.project.id})
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
