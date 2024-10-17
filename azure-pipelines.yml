@@ -67,7 +67,7 @@ steps:
     command: buildAndPush
     dockerfile: '**/Dockerfile'  
     tags: |
-      $(Build.BuildId)
+      latest
 
 - task: SSH@0
   displayName: "SSH into Azure VM"
@@ -75,13 +75,13 @@ steps:
     sshEndPoint: 'ASD-Group7-Backend-Server'
     runOptions: inline
     inline: |
-      CONTAINER_ID=$(sudo docker ps -q --filter ancestor=dohunwon/asd-group7-backend:$(Build.BuildId))
+      CONTAINER_ID=$(sudo docker ps -q --filter ancestor=dohunwon/asd-group7-backend:latest)
       if [ "$CONTAINER_ID" ]; then
         sudo docker stop $CONTAINER_ID
         sudo docker rm $CONTAINER_ID
       fi
-      sudo docker rmi dohunwon/asd-group7-backend:$(Build.BuildId)
-      sudo docker pull dohunwon/asd-group7-backend:$(Build.BuildId)
-      sudo docker run -d -p 80:8000 dohunwon/asd-group7-backend:$(Build.BuildId)
+      sudo docker rmi dohunwon/asd-group7-backend:latest
+      sudo docker pull dohunwon/asd-group7-backend:latest
+      sudo docker run -d -p 80:8000 dohunwon/asd-group7-backend:latest
   condition: succeededOrFailed()
       
