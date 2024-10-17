@@ -74,7 +74,7 @@ steps:
   inputs:
     sshEndPoint: 'ASD-Group7-Backend-Server'
     runOptions: inline
-    commands: |
+    inline: |
       CONTAINER_ID=$(docker ps -q --filter ancestor=dohunwon/asd-group7-backend:$(Build.BuildId))
       if [ "$CONTAINER_ID" ]; then
         docker stop $CONTAINER_ID
