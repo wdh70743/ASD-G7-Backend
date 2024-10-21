@@ -42,7 +42,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'task',
     'project',
-    'drf_yasg'
+    'drf_yasg',
+    'channels',
+    'notification',
 ]
 CORS_ORIGIN_ALLOW_ALL = True
 

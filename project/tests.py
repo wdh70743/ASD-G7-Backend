@@ -2,81 +2,73 @@ from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from users.models import User
-from .models import Project
+from notification.models import Notification, NotificationPreference
 
-class ProjectAPITests(APITestCase):
+class NotificationAPITests(APITestCase):
 
     def setUp(self):
-        self.user1 = User.objects.create(username='user1', password='password1', email='user1@example.com')
-        self.user2 = User.objects.create(username='user2', password='password2', email='user2@example.com')
+        # Create users
+        self.user = User.objects.create(username='testuser', email='testuser@example.com', password='testpassword')
 
-        # Create a sample project
-        self.project = Project.objects.create(
-            owner=self.user1,
-            projectname="Test Project",
-            description="A test project.",
-            start_date="2024-10-01",
-            end_date="2024-12-31",
-            priority="Medium",
-            status=False
-        )
-        self.project.users.add(self.user2)
-
+        # Create a client instance
         self.client = APIClient()
 
-    def test_create_project(self):
-        url = reverse('project-create')
+        # Create notifications for the user
+        self.notification1 = Notification.objects.create(
+            recipient=self.user,
+            message='Test notification 1',
+            notification_type='Task Update',
+            is_read=False
+        )
+        self.notification2 = Notification.objects.create(
+            recipient=self.user,
+            message='Test notification 2',
+            notification_type='Project Update',
+            is_read=True
+        )
+
+        # Create notification preferences for the user
+        self.preferences = NotificationPreference.objects.create(
+            user=self.user,
+            receive_task_updates=True,
+            receive_project_updates=True,
+            receive_reminders=True
+        )
+
+    def test_notification_list(self):
+        # Send GET request to list notifications
+        url = reverse('notification_list')
+        response = self.client.get(f"{url}?user_id={self.user.id}", format='json')
+
+        # Check if response is 200 and contains notifications
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_mark_notification_as_read(self):
+        # Mark the first notification as read
+        url = reverse('mark_notification_as_read', args=[self.notification1.id])
+        response = self.client.put(f"{url}?user_id={self.user.id}", format='json')
+
+        # Check if response is 200 and notification is marked as read
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.notification1.refresh_from_db()
+        self.assertTrue(self.notification1.is_read)
+
+    def test_update_preferences(self):
+        # Prepare data for updating preferences
+        url = reverse('update_preferences')
         data = {
-            "owner": self.user1.id,
-            "projectname": "New Project",
-            "description": "Testing project creation.",
-            "start_date": "2024-10-01",
-            "end_date": "2024-12-31",
-            "priority": "Medium",
-            "status": False,
-            "user_ids": [self.user2.id]
+            'receive_task_updates': False,
+            'receive_project_updates': False,
+            'receive_reminders': False
         }
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['projectname'], data['projectname'])
 
-    def test_list_projects(self):
-        url = reverse('project-list')
-        response = self.client.get(url, format='json')
+        # Send POST request to update preferences
+        response = self.client.post(f"{url}?user_id={self.user.id}", data, format='json')
+
+        # Check if response is 200 and preferences are updated
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)  # Should return 1 project created in setUp
-
-    def test_retrieve_project(self):
-        url = reverse('project-detail', kwargs={'pk': self.project.id})
-        response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['projectname'], self.project.projectname)
-
-    def test_update_project(self):
-        url = reverse('project-detail', kwargs={'pk': self.project.id})
-        data = {
-            "projectname": "Updated Project",
-            "description": "Updated description",
-            "start_date": "2024-10-01",
-            "end_date": "2024-12-31",
-            "priority": "High",
-            "status": True,
-            "user_ids": [self.user1.id]
-        }
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.project.refresh_from_db()
-        self.assertEqual(self.project.projectname, "Updated Project")
-        self.assertEqual(self.project.priority, "High")
-
-    def test_delete_project(self):
-        url = reverse('project-detail', kwargs={'pk': self.project.id})
-        response = self.client.delete(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Project.objects.count(), 0)  # Project should be deleted
-
-    def test_list_user_projects(self):
-        url = reverse('user-projects', kwargs={'user_id': self.user1.id})
-        response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)  # User1 is associated with 1 project
+        self.preferences.refresh_from_db()
+        self.assertFalse(self.preferences.receive_task_updates)
+        self.assertFalse(self.preferences.receive_project_updates)
+        self.assertFalse(self.preferences.receive_reminders)
