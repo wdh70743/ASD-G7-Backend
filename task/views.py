@@ -4,9 +4,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Task, TaskFile, TaskComment, UserTask
+from .models import Task, TaskFile, UserTask
 from django.utils.decorators import method_decorator
-from .serializers import TaskSerializer, TaskCommentSerializer, TaskFileSerializer
+from .serializers import TaskSerializer, TaskFileSerializer
 from project.models import Project
 from users.models import User
 from django.db import transaction
@@ -174,111 +174,111 @@ class RetrieveUpdateDestroyTaskAPI(generics.GenericAPIView,
 # Get Comment List
 # Delete Comment List
 # Edit Comment List
-@method_decorator(csrf_exempt, name='dispatch')
-class CreateCommentAndGetCommentListAPI(generics.GenericAPIView):
-    serializer_class = TaskCommentSerializer
-
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the user making the comment'),
-                'task_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the task to comment on'),
-                'comment': openapi.Schema(type=openapi.TYPE_STRING, description='The comment text'),
-            },
-            required=['user_id', 'task_id', 'comment'],
-        ),
-        responses={
-            200: openapi.Response('Comment saved successfully', TaskCommentSerializer),
-            404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-                'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-            })),
-        },
-        tags=['Tasks'],
-    )
-    def post(self, request, *args, **kwargs):
-        user_id = request.data.get('user_id', None)
-        task_id = kwargs.get('task_id')
-        comment = request.data.get('comment', None)
-
-        if not user_id or not task_id or not comment:
-            return Response({'error': 'user_id, task_id and comment must be provided'},
-                            status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            task = Task.objects.get(id=task_id)
-        except Task.DoesNotExist:
-            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        task_comment = TaskComment.objects.create(owner=user, task=task, comment=comment)
-        task_comment = self.get_serializer(task_comment)
-        return Response({'message': 'comment saved successfully', 'response': task_comment.data},
-                        status=status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        responses={
-            200: openapi.Response('List of comments', TaskCommentSerializer(many=True)),
-            404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-                'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-            })),
-        },
-        tags=['Tasks'],
-    )
-    def get(self, request, *args, **kwargs):
-        task_id = kwargs.get('task_id')
-        try:
-            task = Task.objects.get(id=task_id)
-        except Task.DoesNotExist:
-            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
-        task_comments = TaskComment.objects.filter(task=task)
-        task_comments_serialised = self.get_serializer(task_comments, many=True)
-        return Response(task_comments_serialised.data, status=status.HTTP_200_OK)
-
-@method_decorator(csrf_exempt, name='dispatch')
-class DeleteAndUpdateCommentAPI(generics.GenericAPIView, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
-    serializer_class = TaskCommentSerializer
-    queryset = TaskComment.objects.all()
-    lookup_field = 'comment_id'
-
-    @swagger_auto_schema(
-        request_body=TaskCommentSerializer,
-        responses={
-            200: openapi.Response('Comment updated successfully', TaskCommentSerializer),
-            404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-                'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-            })),
-        },
-    )
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        request_body=TaskCommentSerializer,
-        responses={
-            200: openapi.Response('Comment updated successfully', TaskCommentSerializer),
-            404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-                'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-            })),
-        },
-    )
-    def patch(self, request, *args, **kwargs):
-        return self.partial_update(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        responses={
-            204: 'Comment deleted successfully',
-            404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-                'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-            })),
-        },
-    )
-    def delete(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)
+# @method_decorator(csrf_exempt, name='dispatch')
+# class CreateCommentAndGetCommentListAPI(generics.GenericAPIView):
+#     serializer_class = TaskCommentSerializer
+#
+#     @swagger_auto_schema(
+#         request_body=openapi.Schema(
+#             type=openapi.TYPE_OBJECT,
+#             properties={
+#                 'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the user making the comment'),
+#                 'task_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the task to comment on'),
+#                 'comment': openapi.Schema(type=openapi.TYPE_STRING, description='The comment text'),
+#             },
+#             required=['user_id', 'task_id', 'comment'],
+#         ),
+#         responses={
+#             200: openapi.Response('Comment saved successfully', TaskCommentSerializer),
+#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
+#             })),
+#         },
+#         tags=['Tasks'],
+#     )
+#     def post(self, request, *args, **kwargs):
+#         user_id = request.data.get('user_id', None)
+#         task_id = kwargs.get('task_id')
+#         comment = request.data.get('comment', None)
+#
+#         if not user_id or not task_id or not comment:
+#             return Response({'error': 'user_id, task_id and comment must be provided'},
+#                             status=status.HTTP_404_NOT_FOUND)
+#
+#         try:
+#             task = Task.objects.get(id=task_id)
+#         except Task.DoesNotExist:
+#             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+#
+#         try:
+#             user = User.objects.get(id=user_id)
+#         except User.DoesNotExist:
+#             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+#
+#         task_comment = TaskComment.objects.create(owner=user, task=task, comment=comment)
+#         task_comment = self.get_serializer(task_comment)
+#         return Response({'message': 'comment saved successfully', 'response': task_comment.data},
+#                         status=status.HTTP_200_OK)
+#
+#     @swagger_auto_schema(
+#         responses={
+#             200: openapi.Response('List of comments', TaskCommentSerializer(many=True)),
+#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
+#             })),
+#         },
+#         tags=['Tasks'],
+#     )
+#     def get(self, request, *args, **kwargs):
+#         task_id = kwargs.get('task_id')
+#         try:
+#             task = Task.objects.get(id=task_id)
+#         except Task.DoesNotExist:
+#             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+#         task_comments = TaskComment.objects.filter(task=task)
+#         task_comments_serialised = self.get_serializer(task_comments, many=True)
+#         return Response(task_comments_serialised.data, status=status.HTTP_200_OK)
+#
+# @method_decorator(csrf_exempt, name='dispatch')
+# class DeleteAndUpdateCommentAPI(generics.GenericAPIView, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
+#     serializer_class = TaskCommentSerializer
+#     queryset = TaskComment.objects.all()
+#     lookup_field = 'comment_id'
+#
+#     @swagger_auto_schema(
+#         request_body=TaskCommentSerializer,
+#         responses={
+#             200: openapi.Response('Comment updated successfully', TaskCommentSerializer),
+#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
+#             })),
+#         },
+#     )
+#     def put(self, request, *args, **kwargs):
+#         return self.update(request, *args, **kwargs)
+#
+#     @swagger_auto_schema(
+#         request_body=TaskCommentSerializer,
+#         responses={
+#             200: openapi.Response('Comment updated successfully', TaskCommentSerializer),
+#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
+#             })),
+#         },
+#     )
+#     def patch(self, request, *args, **kwargs):
+#         return self.partial_update(request, *args, **kwargs)
+#
+#     @swagger_auto_schema(
+#         responses={
+#             204: 'Comment deleted successfully',
+#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
+#             })),
+#         },
+#     )
+#     def delete(self, request, *args, **kwargs):
+#         return self.destroy(request, *args, **kwargs)
 
 
 # Delete File
@@ -349,6 +349,7 @@ class CreateFileAndGetFileListAPI(generics.GenericAPIView):
 class DeleteAndUpdateFileAPI(generics.GenericAPIView, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     serializer_class = TaskFileSerializer
     queryset = TaskFile.objects.all()
+    lookup_field = 'id'
 
     @swagger_auto_schema(
         request_body=TaskFileSerializer,

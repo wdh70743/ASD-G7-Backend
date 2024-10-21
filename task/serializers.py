@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Task, TaskFile, TaskComment
+from .models import Task, TaskFile
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -8,10 +8,10 @@ class TaskSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TaskCommentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TaskComment
-        fields = '__all__'
+# class TaskCommentSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = TaskComment
+#         fields = '__all__'
 
 
 class TaskFileSerializer(serializers.ModelSerializer):

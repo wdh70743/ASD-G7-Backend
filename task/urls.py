@@ -1,7 +1,7 @@
 from django.urls import path, include
 from .views import CreateTaskAPI, GetProjectTaskListAPI, GetUserTaskListAPI, HandleArchiveTaskAPI, \
     GetUserArchivedTaskListAPI, RetrieveUpdateDestroyTaskAPI, AssignTaskToUserAPI, UpdateAssignedUsersAPI, \
-    GetAssignedTaskListFromProjectAPI, CreateCommentAndGetCommentListAPI, DeleteAndUpdateCommentAPI, \
+    GetAssignedTaskListFromProjectAPI, \
     CreateFileAndGetFileListAPI, DeleteAndUpdateFileAPI
 
 urlpatterns = [
@@ -15,9 +15,9 @@ urlpatterns = [
     path('update-assigned-users/', UpdateAssignedUsersAPI.as_view(), name='update-assigned-users'),
     path('projects/<int:project_id>/users/<int:user_id>/assigned/',
          GetAssignedTaskListFromProjectAPI.as_view(), name='get-assigned-tasks'),
-    path('<int:task_id>/comments/', CreateCommentAndGetCommentListAPI.as_view(), name='create-get-comments'),
-    path('comments/<int:comment_id>/', DeleteAndUpdateCommentAPI.as_view(), name='comments-details'),
+    # path('<int:task_id>/comments/', CreateCommentAndGetCommentListAPI.as_view(), name='create-get-comments'),
+    # path('comments/<int:comment_id>/', DeleteAndUpdateCommentAPI.as_view(), name='comments-details'),
     path('<int:task_id>/files/', CreateFileAndGetFileListAPI.as_view(), name='create-get-files'),
-    path('files/<int:file_id>/', DeleteAndUpdateFileAPI.as_view(), name='files-details'),
+    path('files/<int:id>/', DeleteAndUpdateFileAPI.as_view(), name='files-details'),
 
 ]
