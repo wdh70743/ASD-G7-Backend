@@ -83,5 +83,5 @@ steps:
       sudo docker rmi dohunwon/asd-group7-backend:latest
       sudo docker pull dohunwon/asd-group7-backend:latest
       sudo docker run -d -p 80:8000 dohunwon/asd-group7-backend:latest
-  condition: succeededOrFailed()
+  condition: succeeded()
       
