@@ -45,6 +45,7 @@ urlpatterns = [
     path('users/', include('users.urls'), name='users'),
     path('projects/', include('project.urls'), name='project'),
     path('tasks/', include('task.urls'), name='tasks'),
+    path('notifications/', include('notification.urls'), name='notification'),
 ]
 
 if settings.DEBUG:
