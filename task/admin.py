@@ -15,7 +15,7 @@ class UserTaskAdmin(admin.ModelAdmin):
 
 
 class TaskFileAdmin(admin.ModelAdmin):
-    list_display = ('task', 'owner', 'file_name', 'created_at')
+    list_display = ('owner', 'created_at')
 
 
 # Register your models here.

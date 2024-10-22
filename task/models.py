@@ -28,6 +28,7 @@ class Task(models.Model):
     archived_at = models.DateTimeField(null=True, blank=True, verbose_name="archived_at")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="created_at")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="updated_at", null=True)
+    # users = models.ManyToManyField("users.user", related_name='projects')
 
     def __str__(self):
         return f"{self.title} by {self.owner}"
@@ -58,10 +59,9 @@ class UserTask(models.Model):
 class TaskFile(models.Model):
     owner = models.ForeignKey("users.User", related_name="task_files", on_delete=models.CASCADE)
     task = models.ForeignKey("Task", related_name="files", on_delete=models.CASCADE)
-    file_name = models.CharField(max_length=3000, verbose_name="file_name")
     file_uri = models.FileField(upload_to="task_files/", verbose_name="file_uri")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="created_at")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="updated_at", null=True)
 
     def __str__(self):
-        return f"{self.owner} -> {self.file_name}"
+        return f"{self.owner} -> {self.file_uri}"

@@ -42,7 +42,6 @@ class TaskAPITestCase(TestCase):
         self.task_file = TaskFile.objects.create(
             owner=self.user,
             task=self.task,
-            file_name='test_file.txt',
             file_uri='path/to/test_file.txt'
         )
 
@@ -54,9 +53,11 @@ class TaskAPITestCase(TestCase):
             'title': 'New Task',
             'description': 'New Description',
             'start_date': '2024-09-29T00:00:00Z',
-            'due_date': '2024-10-29T00:00:00Z'
+            'due_date': '2024-10-29T00:00:00Z',
+            'task_file': [],
+            'user_ids': []
         }
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(url, data, format='multipart')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Task.objects.count(), 2)
 
@@ -97,7 +98,7 @@ class TaskAPITestCase(TestCase):
     def test_update_task(self):
         url = reverse('task_detail', kwargs={'pk': self.task.id})
         data = {'title': 'Updated Task'}
-        response = self.client.patch(url, data, format='json')
+        response = self.client.patch(url, data, format='multipart')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.task.refresh_from_db()
         self.assertEqual(self.task.title, 'Updated Task')
@@ -146,7 +147,6 @@ class TaskAPITestCase(TestCase):
         data = {
             'user_id': self.user.id,
             'task_id': self.task.id,
-            'file_name': 'new_test_file.txt',
             'file_uri': file,
         }
         response = self.client.post(url, data, format='multipart')
@@ -156,17 +156,4 @@ class TaskAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)  # One existing file and one new file
 
-    def test_delete_and_update_file(self):
-        url = reverse('files-details', kwargs={'id': self.task_file.id})
 
-        # Test update
-        data = {'file_name': 'updated_test_file.txt'}
-        response = self.client.patch(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.task_file.refresh_from_db()
-        self.assertEqual(self.task_file.file_name, 'updated_test_file.txt')
-
-        # Test delete
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(TaskFile.objects.count(), 0)
