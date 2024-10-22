@@ -54,7 +54,6 @@ for project_data in project_list:
     Project.objects.create(owner=owner,
                            projectname=project_data[0],
                            description=project_data[1],
-                           status=False,
                            start_date=project_data[2],
                            end_date=project_data[3],
                            priority=project_data[4]

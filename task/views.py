@@ -6,50 +6,36 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Task, TaskFile, UserTask
 from django.utils.decorators import method_decorator
-from .serializers import TaskSerializer, TaskFileSerializer
+from .serializers import TaskSerializer, TaskFileSerializer, TaskCreationSerializer
 from project.models import Project
 from users.models import User
 from django.db import transaction
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.generics import CreateAPIView
+from django.core.exceptions import ValidationError
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CreateTaskAPI(generics.GenericAPIView, mixins.CreateModelMixin):
-    serializer_class = TaskSerializer
+    serializer_class = TaskCreationSerializer
     queryset = Task.objects.all()
     parser_classes = (MultiPartParser, FormParser)
 
-    @swagger_auto_schema(
-        operation_description="Create a new task with optional files and assigned users",
-        responses={201: TaskSerializer()},
-        tags=['Tasks'],
-    )
+    @swagger_auto_schema(auto_schema=None)
     def post(self, request, *args, **kwargs):
-        files = request.FILES.getlist('task_file')
-        user_ids = request.data.getlist('user_ids')  # Get the list of user IDs
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
 
-        # Copy the request data for the serializer
-        data = request.data.copy()
-        serializer = self.get_serializer(data=data)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+# @method_decorator(csrf_exempt, name='dispatch')
+# class CreateTaskAPI(CreateAPIView):
+#     parser_class = [MultiPartParser, FormParser]
+#     serializer_class = TaskSerializer
 
-        if serializer.is_valid():
-            task = serializer.save()
-            # Create TaskFile objects for each uploaded file
-            for file in files:
-                TaskFile.objects.create(
-                    task=task,
-                    owner=task.owner,
-                    file_uri=file  # Updated to match your model
-                )
-            # Assign users to the task using UserTask model
-            for user_id in user_ids:
-                if user_id:  # Check if user_id is not empty
-                    UserTask.objects.create(
-                        task=task,
-                        assigned_by=task.owner,  # Assuming the task owner is assigning the task
-                        assigned_to_id=user_id  # Directly assign user_id to the ForeignKey
-                    )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -158,213 +144,166 @@ class RetrieveUpdateDestroyTaskAPI(generics.GenericAPIView,
                                    mixins.UpdateModelMixin,
                                    mixins.DestroyModelMixin):
     queryset = Task.objects.all()
-    serializer_class = TaskSerializer
+    serializer_class = TaskCreationSerializer
     parser_classes = (MultiPartParser, FormParser)
 
-    @swagger_auto_schema(
-        operation_description="Retrieve a task",
-        responses={200: TaskSerializer(), 404: "Not Found"},
-        tags=['Tasks'],
-    )
+    @swagger_auto_schema(auto_schema=None)
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
-    @swagger_auto_schema(
-        operation_description="Partially update a task",
-        request_body=TaskSerializer,
-        responses={200: TaskSerializer(), 400: "Bad Request", 404: "Not Found"},
-        tags=['Tasks'],
-    )
+    @swagger_auto_schema(auto_schema=None)
     def patch(self, request, *args, **kwargs):
-        task = self.get_object()  # Get the existing task instance
-        data = request.data.copy()  # Copy request data for serializer
+        task = self.get_object()
+        data = request.data.copy()
 
-        serializer = self.get_serializer(task, data=data, partial=True)
-        if serializer.is_valid():
-            task = serializer.save()
+        try:
+            with transaction.atomic():
+                # Handle file uploads
+                files = request.FILES.getlist('uploaded_files')
+                if files:
+                    # Delete existing files if new ones are uploaded
+                    TaskFile.objects.filter(task=task).delete()
+                    for file in files:
+                        TaskFile.objects.create(
+                            task=task,
+                            owner=task.owner,
+                            file_uri=file
+                        )
 
-            # Handle file uploads
-            files = request.FILES.getlist('task_file')
-            user_ids = request.data.getlist('user_ids')
+                # Handle user assignments
+                assigned_users = data.getlist('assigned_users')
+                if assigned_users:
+                    # Convert to integers and filter out empty values
+                    assigned_users = [int(user_id) for user_id in assigned_users if user_id.strip()]
+                    # Delete existing assignments
+                    UserTask.objects.filter(task=task).delete()
+                    # Create new assignments
+                    for user_id in assigned_users:
+                        assigned_user = User.objects.get(id=user_id)
+                        UserTask.objects.create(
+                            task=task,
+                            assigned_by=task.owner,
+                            assigned_to=assigned_user
+                        )
 
-            if user_ids:
-                UserTask.objects.filter(task=task).delete()
+                serializer = self.get_serializer(task, data=data, partial=True)
+                if serializer.is_valid():
+                    task = serializer.save()
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-                for user in user_ids:
-                    TaskFile.objects.create(
-                        task=task,
-                        assigned_by=task.owner,
-                        assigned_to=user['assigned_to']
-                    )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-            if files:
-                TaskFile.objects.filter(task=task).delete()
-
-            # Add new files
-                for file in files:
-                    TaskFile.objects.create(
-                        task=task,
-                        owner=task.owner,
-                        file_uri=file  # Store the uploaded file
-                    )
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @swagger_auto_schema(
-        operation_description="Update a task",
-        request_body=TaskSerializer,
-        responses={200: TaskSerializer(), 400: "Bad Request", 404: "Not Found"},
-        tags=['Tasks'],
-    )
-    def put(self, request, *args, **kwargs):
-        task = self.get_object()  # Get the existing task instance
-        data = request.data.copy()  # Copy request data for serializer
-
-        serializer = self.get_serializer(task, data=data)
-        if serializer.is_valid():
-            task = serializer.save()
-
-            # Handle file uploads
-            files = request.FILES.getlist('task_file')
-            user_ids = request.data.getlist('user_ids')
-
-            if user_ids:
-                UserTask.objects.filter(task=task).delete()
-
-                for user in user_ids:
-                    TaskFile.objects.create(
-                        task=task,
-                        assigned_by=task.owner,
-                        assigned_to=user['assigned_to']
-                    )
-            # Clear existing files if necessary (optional)
-            if files:
-                TaskFile.objects.filter(task=task).delete()
-
-                # Add new files
-                for file in files:
-                    TaskFile.objects.create(
-                        task=task,
-                        owner=task.owner,
-                        file_uri=file  # Store the uploaded file
-                    )
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @swagger_auto_schema(
-        operation_description="Delete a task",
-        responses={204: "No Content", 404: "Not Found"},
-        tags=['Tasks'],
-    )
+    @swagger_auto_schema(auto_schema=None)
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CreateFileAndGetFileListAPI(generics.GenericAPIView):
-    serializer_class = TaskFileSerializer
-
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the user uploading the file'),
-                'task_id': openapi.Schema(type=openapi.TYPE_INTEGER,
-                                          description='ID of the task associated with the file'),
-                'file_name': openapi.Schema(type=openapi.TYPE_STRING, description='Name of the file'),
-                'file_uri': openapi.Schema(type=openapi.TYPE_FILE, description='File to upload'),
-            },
-            required=['user_id', 'task_id', 'file_name', 'file_uri']  # Make sure to specify required fields
-        ),
-        responses={
-            201: openapi.Response('File uploaded successfully', TaskFileSerializer),
-            400: 'Invalid request',
-            404: 'User or Task not found',
-        },
-        operation_description="Upload a file associated with a specific task and user."
-    )
-    def post(self, request, *args, **kwargs):
-        user_id = request.data.get('user_id', None)
-        task_id = kwargs.get('task_id')
-        file_name = request.data.get('file_name', None)
-        file_uri = request.data.get('file_uri', None)
-
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            task = Task.objects.get(id=task_id)
-        except Task.DoesNotExist:
-            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        task_file = TaskFile.objects.create(owner=user, task=task, file_uri=file_uri)
-        task_file = self.get_serializer(task_file)
-        return Response({'message': 'File uploaded successfully', 'response': task_file.data},
-                        status=status.HTTP_201_CREATED)
-
-    @swagger_auto_schema(
-        responses={
-            200: openapi.Response('List of files associated with the task', TaskFileSerializer(many=True)),
-            404: 'Task not found',
-        },
-        operation_description="Retrieve a list of files associated with a specific task."
-    )
-    def get(self, request, *args, **kwargs):
-        task_id = kwargs.get('task_id')
-
-        try:
-            task = Task.objects.get(id=task_id)
-        except Task.DoesNotExist:
-            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        task_files = TaskFile.objects.filter(task=task)
-        serialized_files = self.get_serializer(task_files, many=True)
-        return Response(serialized_files.data, status=status.HTTP_200_OK)
-@method_decorator(csrf_exempt, name='dispatch')
-class DeleteAndUpdateFileAPI(generics.GenericAPIView, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
-    serializer_class = TaskFileSerializer
-    queryset = TaskFile.objects.all()
-    lookup_field = 'id'
-
-    @swagger_auto_schema(
-        request_body=TaskFileSerializer,
-        responses={
-            200: openapi.Response('File updated successfully', TaskFileSerializer),
-            404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-                'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-            })),
-        },
-    )
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        request_body=TaskFileSerializer,
-        responses={
-            200: openapi.Response('File updated successfully', TaskFileSerializer),
-            404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-                'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-            })),
-        },
-    )
-    def patch(self, request, *args, **kwargs):
-        return self.partial_update(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        responses={
-            204: 'File deleted successfully',
-            404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-                'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-            })),
-        },
-    )
-    def delete(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)
+# @method_decorator(csrf_exempt, name='dispatch')
+# class CreateFileAndGetFileListAPI(generics.GenericAPIView):
+#     serializer_class = TaskFileSerializer
+#
+#     @swagger_auto_schema(
+#         request_body=openapi.Schema(
+#             type=openapi.TYPE_OBJECT,
+#             properties={
+#                 'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the user uploading the file'),
+#                 'task_id': openapi.Schema(type=openapi.TYPE_INTEGER,
+#                                           description='ID of the task associated with the file'),
+#                 'file_name': openapi.Schema(type=openapi.TYPE_STRING, description='Name of the file'),
+#                 'file_uri': openapi.Schema(type=openapi.TYPE_FILE, description='File to upload'),
+#             },
+#             required=['user_id', 'task_id', 'file_name', 'file_uri']  # Make sure to specify required fields
+#         ),
+#         responses={
+#             201: openapi.Response('File uploaded successfully', TaskFileSerializer),
+#             400: 'Invalid request',
+#             404: 'User or Task not found',
+#         },
+#         operation_description="Upload a file associated with a specific task and user."
+#     )
+#     def post(self, request, *args, **kwargs):
+#         user_id = request.data.get('user_id', None)
+#         task_id = kwargs.get('task_id')
+#         file_name = request.data.get('file_name', None)
+#         file_uri = request.data.get('file_uri', None)
+#
+#         try:
+#             user = User.objects.get(id=user_id)
+#         except User.DoesNotExist:
+#             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+#
+#         try:
+#             task = Task.objects.get(id=task_id)
+#         except Task.DoesNotExist:
+#             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+#
+#         task_file = TaskFile.objects.create(owner=user, task=task, file_uri=file_uri)
+#         task_file = self.get_serializer(task_file)
+#         return Response({'message': 'File uploaded successfully', 'response': task_file.data},
+#                         status=status.HTTP_201_CREATED)
+#
+#     @swagger_auto_schema(
+#         responses={
+#             200: openapi.Response('List of files associated with the task', TaskFileSerializer(many=True)),
+#             404: 'Task not found',
+#         },
+#         operation_description="Retrieve a list of files associated with a specific task."
+#     )
+#     def get(self, request, *args, **kwargs):
+#         task_id = kwargs.get('task_id')
+#
+#         try:
+#             task = Task.objects.get(id=task_id)
+#         except Task.DoesNotExist:
+#             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+#
+#         task_files = TaskFile.objects.filter(task=task)
+#         serialized_files = self.get_serializer(task_files, many=True)
+#         return Response(serialized_files.data, status=status.HTTP_200_OK)
+# @method_decorator(csrf_exempt, name='dispatch')
+# class DeleteAndUpdateFileAPI(generics.GenericAPIView, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
+#     serializer_class = TaskFileSerializer
+#     queryset = TaskFile.objects.all()
+#     lookup_field = 'id'
+#
+#     @swagger_auto_schema(
+#         request_body=TaskFileSerializer,
+#         responses={
+#             200: openapi.Response('File updated successfully', TaskFileSerializer),
+#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
+#             })),
+#         },
+#     )
+#     def put(self, request, *args, **kwargs):
+#         return self.update(request, *args, **kwargs)
+#
+#     @swagger_auto_schema(
+#         request_body=TaskFileSerializer,
+#         responses={
+#             200: openapi.Response('File updated successfully', TaskFileSerializer),
+#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
+#             })),
+#         },
+#     )
+#     def patch(self, request, *args, **kwargs):
+#         return self.partial_update(request, *args, **kwargs)
+#
+#     @swagger_auto_schema(
+#         responses={
+#             204: 'File deleted successfully',
+#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
+#             })),
+#         },
+#     )
+#     def delete(self, request, *args, **kwargs):
+#         return self.destroy(request, *args, **kwargs)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AssignTaskToUserAPI(generics.GenericAPIView):

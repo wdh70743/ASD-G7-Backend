@@ -1,8 +1,7 @@
 from django.urls import path, include
 from .views import CreateTaskAPI, GetProjectTaskListAPI, GetUserTaskListAPI, HandleArchiveTaskAPI, \
     GetUserArchivedTaskListAPI, RetrieveUpdateDestroyTaskAPI, AssignTaskToUserAPI, UpdateAssignedUsersAPI, \
-    GetAssignedTaskListFromProjectAPI, \
-    CreateFileAndGetFileListAPI, DeleteAndUpdateFileAPI
+    GetAssignedTaskListFromProjectAPI
 
 urlpatterns = [
     path('create/', CreateTaskAPI.as_view(), name='create_task'),
@@ -17,7 +16,7 @@ urlpatterns = [
          GetAssignedTaskListFromProjectAPI.as_view(), name='get-assigned-tasks'),
     # path('<int:task_id>/comments/', CreateCommentAndGetCommentListAPI.as_view(), name='create-get-comments'),
     # path('comments/<int:comment_id>/', DeleteAndUpdateCommentAPI.as_view(), name='comments-details'),
-    path('<int:task_id>/files/', CreateFileAndGetFileListAPI.as_view(), name='create-get-files'),
-    path('files/<int:id>/', DeleteAndUpdateFileAPI.as_view(), name='files-details'),
+    # path('<int:task_id>/files/', CreateFileAndGetFileListAPI.as_view(), name='create-get-files'),
+    # path('files/<int:id>/', DeleteAndUpdateFileAPI.as_view(), name='files-details'),
 
 ]
