@@ -74,9 +74,22 @@ class NotificationTests(TestCase):
         # Send GET request to list notifications
         response = self.client.get(reverse('notification_list'), {'user_id': self.user1.id})
 
-        # Check if response is 200 and contains notifications
+        # Check if response status code is 200
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.json()), 2)
+
+        # Parse the response content to JSON
+        response_data = response.json()
+
+        # Debug print to verify response data structure
+        print("Response JSON:", response_data)
+
+        # Verify response length is 2
+        self.assertEqual(len(response_data), 2)
+
+        # Check that the response contains the expected messages
+        messages = {notification['message'] for notification in response_data}
+        self.assertIn('Task Updated', messages)
+        self.assertIn('Project Updated', messages)
 
     def test_mark_notification_as_read(self):
         """Test marking a notification as read (U904)"""

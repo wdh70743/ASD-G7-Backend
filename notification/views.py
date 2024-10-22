@@ -5,6 +5,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from notification.models import Notification, NotificationPreference
 from users.models import User
+from rest_framework.response import Response
 
 # --- List Notifications ---
 @swagger_auto_schema(
@@ -48,11 +49,11 @@ def notification_list(request):
             'message': n.message,
             'type': n.notification_type,
             'is_read': n.is_read,
-            'created_at': n.created_at,
+            'created_at': n.created_at.isoformat(),
         }
         for n in notifications
     ]
-    return JsonResponse(response, safe=False, status=200)
+    return Response(response, status=200)
 
 # --- Mark Notification as Read ---
 @swagger_auto_schema(
