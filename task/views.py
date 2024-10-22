@@ -10,20 +10,46 @@ from .serializers import TaskSerializer, TaskFileSerializer
 from project.models import Project
 from users.models import User
 from django.db import transaction
-
+from rest_framework.parsers import MultiPartParser, FormParser
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CreateTaskAPI(generics.GenericAPIView, mixins.CreateModelMixin):
     serializer_class = TaskSerializer
     queryset = Task.objects.all()
+    parser_classes = (MultiPartParser, FormParser)
 
     @swagger_auto_schema(
-        operation_description="Create a new task",
+        operation_description="Create a new task with optional files and assigned users",
         responses={201: TaskSerializer()},
         tags=['Tasks'],
     )
     def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+        files = request.FILES.getlist('task_file')
+        user_ids = request.data.getlist('user_ids')  # Get the list of user IDs
+
+        # Copy the request data for the serializer
+        data = request.data.copy()
+        serializer = self.get_serializer(data=data)
+
+        if serializer.is_valid():
+            task = serializer.save()
+            # Create TaskFile objects for each uploaded file
+            for file in files:
+                TaskFile.objects.create(
+                    task=task,
+                    owner=task.owner,
+                    file_uri=file  # Updated to match your model
+                )
+            # Assign users to the task using UserTask model
+            for user_id in user_ids:
+                if user_id:  # Check if user_id is not empty
+                    UserTask.objects.create(
+                        task=task,
+                        assigned_by=task.owner,  # Assuming the task owner is assigning the task
+                        assigned_to_id=user_id  # Directly assign user_id to the ForeignKey
+                    )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -130,10 +156,10 @@ class GetUserArchivedTaskListAPI(generics.GenericAPIView):
 class RetrieveUpdateDestroyTaskAPI(generics.GenericAPIView,
                                    mixins.RetrieveModelMixin,
                                    mixins.UpdateModelMixin,
-                                   mixins.DestroyModelMixin
-                                   ):
+                                   mixins.DestroyModelMixin):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
+    parser_classes = (MultiPartParser, FormParser)
 
     @swagger_auto_schema(
         operation_description="Retrieve a task",
@@ -150,7 +176,41 @@ class RetrieveUpdateDestroyTaskAPI(generics.GenericAPIView,
         tags=['Tasks'],
     )
     def patch(self, request, *args, **kwargs):
-        return self.partial_update(request, *args, **kwargs)
+        task = self.get_object()  # Get the existing task instance
+        data = request.data.copy()  # Copy request data for serializer
+
+        serializer = self.get_serializer(task, data=data, partial=True)
+        if serializer.is_valid():
+            task = serializer.save()
+
+            # Handle file uploads
+            files = request.FILES.getlist('task_file')
+            user_ids = request.data.getlist('user_ids')
+
+            if user_ids:
+                UserTask.objects.filter(task=task).delete()
+
+                for user in user_ids:
+                    TaskFile.objects.create(
+                        task=task,
+                        assigned_by=task.owner,
+                        assigned_to=user['assigned_to']
+                    )
+
+            if files:
+                TaskFile.objects.filter(task=task).delete()
+
+            # Add new files
+                for file in files:
+                    TaskFile.objects.create(
+                        task=task,
+                        owner=task.owner,
+                        file_uri=file  # Store the uploaded file
+                    )
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
         operation_description="Update a task",
@@ -159,7 +219,41 @@ class RetrieveUpdateDestroyTaskAPI(generics.GenericAPIView,
         tags=['Tasks'],
     )
     def put(self, request, *args, **kwargs):
-        return self.put(request, *args, **kwargs)
+        task = self.get_object()  # Get the existing task instance
+        data = request.data.copy()  # Copy request data for serializer
+
+        serializer = self.get_serializer(task, data=data)
+        if serializer.is_valid():
+            task = serializer.save()
+
+            # Handle file uploads
+            files = request.FILES.getlist('task_file')
+            user_ids = request.data.getlist('user_ids')
+
+            if user_ids:
+                UserTask.objects.filter(task=task).delete()
+
+                for user in user_ids:
+                    TaskFile.objects.create(
+                        task=task,
+                        assigned_by=task.owner,
+                        assigned_to=user['assigned_to']
+                    )
+            # Clear existing files if necessary (optional)
+            if files:
+                TaskFile.objects.filter(task=task).delete()
+
+                # Add new files
+                for file in files:
+                    TaskFile.objects.create(
+                        task=task,
+                        owner=task.owner,
+                        file_uri=file  # Store the uploaded file
+                    )
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
         operation_description="Delete a task",
@@ -169,120 +263,6 @@ class RetrieveUpdateDestroyTaskAPI(generics.GenericAPIView,
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
 
-
-# Create Comment
-# Get Comment List
-# Delete Comment List
-# Edit Comment List
-# @method_decorator(csrf_exempt, name='dispatch')
-# class CreateCommentAndGetCommentListAPI(generics.GenericAPIView):
-#     serializer_class = TaskCommentSerializer
-#
-#     @swagger_auto_schema(
-#         request_body=openapi.Schema(
-#             type=openapi.TYPE_OBJECT,
-#             properties={
-#                 'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the user making the comment'),
-#                 'task_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the task to comment on'),
-#                 'comment': openapi.Schema(type=openapi.TYPE_STRING, description='The comment text'),
-#             },
-#             required=['user_id', 'task_id', 'comment'],
-#         ),
-#         responses={
-#             200: openapi.Response('Comment saved successfully', TaskCommentSerializer),
-#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-#             })),
-#         },
-#         tags=['Tasks'],
-#     )
-#     def post(self, request, *args, **kwargs):
-#         user_id = request.data.get('user_id', None)
-#         task_id = kwargs.get('task_id')
-#         comment = request.data.get('comment', None)
-#
-#         if not user_id or not task_id or not comment:
-#             return Response({'error': 'user_id, task_id and comment must be provided'},
-#                             status=status.HTTP_404_NOT_FOUND)
-#
-#         try:
-#             task = Task.objects.get(id=task_id)
-#         except Task.DoesNotExist:
-#             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
-#
-#         try:
-#             user = User.objects.get(id=user_id)
-#         except User.DoesNotExist:
-#             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-#
-#         task_comment = TaskComment.objects.create(owner=user, task=task, comment=comment)
-#         task_comment = self.get_serializer(task_comment)
-#         return Response({'message': 'comment saved successfully', 'response': task_comment.data},
-#                         status=status.HTTP_200_OK)
-#
-#     @swagger_auto_schema(
-#         responses={
-#             200: openapi.Response('List of comments', TaskCommentSerializer(many=True)),
-#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-#             })),
-#         },
-#         tags=['Tasks'],
-#     )
-#     def get(self, request, *args, **kwargs):
-#         task_id = kwargs.get('task_id')
-#         try:
-#             task = Task.objects.get(id=task_id)
-#         except Task.DoesNotExist:
-#             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
-#         task_comments = TaskComment.objects.filter(task=task)
-#         task_comments_serialised = self.get_serializer(task_comments, many=True)
-#         return Response(task_comments_serialised.data, status=status.HTTP_200_OK)
-#
-# @method_decorator(csrf_exempt, name='dispatch')
-# class DeleteAndUpdateCommentAPI(generics.GenericAPIView, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
-#     serializer_class = TaskCommentSerializer
-#     queryset = TaskComment.objects.all()
-#     lookup_field = 'comment_id'
-#
-#     @swagger_auto_schema(
-#         request_body=TaskCommentSerializer,
-#         responses={
-#             200: openapi.Response('Comment updated successfully', TaskCommentSerializer),
-#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-#             })),
-#         },
-#     )
-#     def put(self, request, *args, **kwargs):
-#         return self.update(request, *args, **kwargs)
-#
-#     @swagger_auto_schema(
-#         request_body=TaskCommentSerializer,
-#         responses={
-#             200: openapi.Response('Comment updated successfully', TaskCommentSerializer),
-#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-#             })),
-#         },
-#     )
-#     def patch(self, request, *args, **kwargs):
-#         return self.partial_update(request, *args, **kwargs)
-#
-#     @swagger_auto_schema(
-#         responses={
-#             204: 'Comment deleted successfully',
-#             404: openapi.Response('Error', openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-#                 'error': openapi.Schema(type=openapi.TYPE_STRING, description='Error message'),
-#             })),
-#         },
-#     )
-#     def delete(self, request, *args, **kwargs):
-#         return self.destroy(request, *args, **kwargs)
-
-
-# Delete File
-# Update File
 @method_decorator(csrf_exempt, name='dispatch')
 class CreateFileAndGetFileListAPI(generics.GenericAPIView):
     serializer_class = TaskFileSerializer
@@ -322,7 +302,7 @@ class CreateFileAndGetFileListAPI(generics.GenericAPIView):
         except Task.DoesNotExist:
             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        task_file = TaskFile.objects.create(owner=user, task=task, file_name=file_name, file_uri=file_uri)
+        task_file = TaskFile.objects.create(owner=user, task=task, file_uri=file_uri)
         task_file = self.get_serializer(task_file)
         return Response({'message': 'File uploaded successfully', 'response': task_file.data},
                         status=status.HTTP_201_CREATED)
