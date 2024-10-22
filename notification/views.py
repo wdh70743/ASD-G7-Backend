@@ -102,6 +102,7 @@ def mark_notification_as_read(request, notification_id):
             'receive_task_updates': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Receive task updates'),
             'receive_project_updates': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Receive project updates'),
             'receive_reminders': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Receive reminders'),
+            'custom_reminder_interval': openapi.Schema(type=openapi.TYPE_INTEGER, description='Custom reminder interval in hours')
         },
         required=['receive_task_updates', 'receive_project_updates', 'receive_reminders']
     ),
@@ -131,6 +132,7 @@ def update_preferences(request):
     user_pref.receive_task_updates = request.data.get('receive_task_updates', user_pref.receive_task_updates)
     user_pref.receive_project_updates = request.data.get('receive_project_updates', user_pref.receive_project_updates)
     user_pref.receive_reminders = request.data.get('receive_reminders', user_pref.receive_reminders)
+    user_pref.custom_reminder_interval = request.data.get('custom_reminder_interval', user_pref.custom_reminder_interval)
     user_pref.save()
 
     return JsonResponse({'status': 'success'}, status=200)

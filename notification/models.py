@@ -25,7 +25,7 @@ class NotificationPreference(models.Model):
     receive_task_updates = models.BooleanField(default=True)
     receive_project_updates = models.BooleanField(default=True)
     receive_reminders = models.BooleanField(default=True)
+    custom_reminder_interval = models.IntegerField(default=24, help_text="Interval in hours for custom reminders")
 
     def __str__(self):
         return f"Preferences for {self.user}"
-
