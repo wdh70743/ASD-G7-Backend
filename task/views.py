@@ -155,7 +155,6 @@ class RetrieveUpdateDestroyTaskAPI(generics.GenericAPIView,
     def patch(self, request, *args, **kwargs):
         task = self.get_object()
         data = request.data.copy()
-
         try:
             with transaction.atomic():
                 # Handle file uploads
@@ -185,6 +184,11 @@ class RetrieveUpdateDestroyTaskAPI(generics.GenericAPIView,
                             assigned_by=task.owner,
                             assigned_to=assigned_user
                         )
+                if 'owner' in data:
+                    data['owner_id'] = data.pop('owner')
+
+                if 'project' in data:
+                    data['project_id'] = data.pop('project')
 
                 serializer = self.get_serializer(task, data=data, partial=True)
                 if serializer.is_valid():
