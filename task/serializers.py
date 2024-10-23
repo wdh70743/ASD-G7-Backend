@@ -43,7 +43,7 @@ class TaskCreationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ['owner', 'project', 'priority', 'status', 'title', 'description', 'start_date', 'due_date', 'is_archived',
+        fields = ['id', 'owner', 'project', 'priority', 'status', 'title', 'description', 'start_date', 'due_date', 'is_archived',
                   'archived_at', 'created_at', 'updated_at', 'files', 'uploaded_files', 'users', 'assigned_users']
     def create(self, validated_data):
         uploaded_files = validated_data.pop("uploaded_files", [])
