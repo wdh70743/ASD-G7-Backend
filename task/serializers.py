@@ -65,7 +65,7 @@ class TaskCreationSerializer(serializers.ModelSerializer):
 
         for file in uploaded_files:
             TaskFile.objects.create(
-                owner=task.owner,
+                owner=owner,
                 task=task,
                 file_uri=file
             )
@@ -83,3 +83,24 @@ class TaskCreationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(f"User with id {user_id} does not exist")
 
         return task
+
+    def update(self, instance, validated_data):
+        # Handle owner_id if provided
+        owner_id = validated_data.pop('owner_id', None)
+        project_id = validated_data.pop('project_id', None)
+        if owner_id:
+            try:
+                instance.owner = User.objects.get(id=owner_id)
+            except User.DoesNotExist:
+                raise serializers.ValidationError({'owner_id': 'User does not exist'})
+        if project_id:
+            try:
+                instance.project = Project.objects.get(id=project_id)
+            except Project.DoesNotExist:
+                raise serializers.ValidationError({'project_id': 'Project does not exist'})
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance

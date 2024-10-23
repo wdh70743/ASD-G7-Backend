@@ -269,6 +269,20 @@ class TaskAPITestCase(TestCase):
         self.assertEqual(self.task.title, 'Updated Task')
         self.assertEqual(self.task.priority, 'High')
 
+    def test_update_task_with_user(self):
+        """Test updating task information"""
+        url = reverse('task_detail', kwargs={'pk': self.task.id})
+        data = {
+            'title': 'Updated Task',
+            'priority': 'High',
+            'owner': self.user.id
+        }
+        response = self.client.patch(url, data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.title, 'Updated Task')
+        self.assertEqual(self.task.priority, 'High')
+
     def test_archive_task(self):
         """Test archiving and unarchiving a task"""
         url = reverse('archive_task')
