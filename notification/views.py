@@ -137,3 +137,49 @@ def update_preferences(request):
     user_pref.save()
 
     return JsonResponse({'status': 'success'}, status=200)
+
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Retrieve notification preferences for a specific user.",
+    manual_parameters=[
+        openapi.Parameter('user_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description="User ID"),
+    ],
+    responses={
+        200: openapi.Response('User notification preferences', openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'receive_task_updates': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Receive task updates'),
+                'receive_project_updates': openapi.Schema(type=openapi.TYPE_BOOLEAN,
+                                                          description='Receive project updates'),
+                'receive_reminders': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Receive reminders'),
+                'custom_reminder_interval': openapi.Schema(type=openapi.TYPE_INTEGER,
+                                                           description='Custom reminder interval in hours'),
+            }
+        )),
+        404: 'User or preferences not found'
+    },
+    tags=['Notifications'],
+)
+@api_view(['GET'])
+@csrf_exempt
+def get_preferences(request):
+    user_id = request.GET.get('user_id')
+    if not user_id:
+        return JsonResponse({'error': 'User ID is required'}, status=400)
+
+    try:
+        user = User.objects.get(id=user_id)
+        preferences = NotificationPreference.objects.get(user=user)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except NotificationPreference.DoesNotExist:
+        return JsonResponse({'error': 'Notification preferences not found'}, status=404)
+
+    response_data = {
+        'receive_task_updates': preferences.receive_task_updates,
+        'receive_project_updates': preferences.receive_project_updates,
+        'receive_reminders': preferences.receive_reminders,
+        'custom_reminder_interval': preferences.custom_reminder_interval
+    }
+    return JsonResponse(response_data, status=200)
