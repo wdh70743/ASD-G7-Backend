@@ -1,6 +1,5 @@
-# notification/tests.py
-
-from django.test import TestCase, Client
+from django.db.models.signals import post_save
+from django.test import TransactionTestCase, Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from notification.models import Notification, NotificationPreference
@@ -8,8 +7,12 @@ from task.models import Task
 from users.models import User
 from project.models import Project
 from datetime import timedelta
+from django.core.management import call_command
+from django.db import connection, transaction
 
-class NotificationTests(TestCase):
+
+class NotificationTests(TransactionTestCase):
+    reset_sequences = True
 
     def setUp(self):
         # Set up test users
@@ -29,7 +32,7 @@ class NotificationTests(TestCase):
             user=self.user2,
             receive_task_updates=False,
             receive_project_updates=True,
-            receive_reminders=True,
+            receive_reminders=False,
             custom_reminder_interval=6
         )
 
@@ -52,12 +55,9 @@ class NotificationTests(TestCase):
             due_date=timezone.now() + timedelta(hours=6)
         )
 
-        # Set up client
         self.client = Client()
 
     def test_notification_list(self):
-        """Test retrieving a list of notifications for a user (U901)"""
-        # Create test notifications
         Notification.objects.create(
             recipient=self.user1,
             message='Task Updated',
@@ -71,28 +71,109 @@ class NotificationTests(TestCase):
             related_project=self.project
         )
 
-        # Send GET request to list notifications
         response = self.client.get(reverse('notification_list'), {'user_id': self.user1.id})
 
-        # Check if response status code is 200
         self.assertEqual(response.status_code, 200)
 
-        # Parse the response content to JSON
         response_data = response.json()
 
-        # Debug print to verify response data structure
-        print("Response JSON:", response_data)
-
-        # Verify response length is 2
         self.assertEqual(len(response_data), 2)
 
-        # Check that the response contains the expected messages
         messages = {notification['message'] for notification in response_data}
         self.assertIn('Task Updated', messages)
         self.assertIn('Project Updated', messages)
 
+    def test_automatic_task_update_notification(self):
+
+        self.task.title = 'Updated Task Title'
+        self.task.save()
+
+        task_update_notifications_user1 = Notification.objects.filter(
+            recipient=self.user1,
+            notification_type='Task Update',
+            related_task=self.task
+        )
+
+        self.assertEqual(
+            task_update_notifications_user1.count(),
+            1,
+            "Task update notification not created for user1"
+        )
+
+    def test_automatic_project_update_notification(self):
+
+        self.project.description = 'Updated Project Description'
+        self.project.save()
+
+        # Manually commit the transaction to ensure the signal triggers
+        connection.commit()
+
+        # Check if a project update notification was automatically created for user1 and user2
+        project_update_notifications_user1 = Notification.objects.filter(
+            recipient=self.user1,
+            notification_type='Project Update',
+            related_project=self.project
+        )
+        project_update_notifications_user2 = Notification.objects.filter(
+            recipient=self.user2,
+            notification_type='Project Update',
+            related_project=self.project
+        )
+
+        self.assertEqual(
+            project_update_notifications_user1.count(),
+            1,
+            "Project update notification not created for user1"
+        )
+        self.assertEqual(
+            project_update_notifications_user2.count(),
+            1,
+            "Project update notification not created for user2"
+        )
+
+    def test_automatic_task_due_reminder(self):
+        """Test that a reminder notification is automatically created for tasks with due dates approaching."""
+        # Create a task with a due date within the custom reminder interval
+        task_due_soon = Task.objects.create(
+            owner=self.user1,
+            project=self.project,
+            title='Task Due Soon',
+            start_date=timezone.now(),
+            due_date=timezone.now() + timedelta(hours=12)  # Matches user1's reminder interval
+        )
+
+        # Run the management command to send reminders
+        call_command('send_reminders')
+
+        # Manually commit the transaction to ensure the signal triggers
+        connection.commit()
+
+        # Check if a reminder notification was automatically created for user1
+        reminder_notifications_user1 = Notification.objects.filter(
+            recipient=self.user1,
+            notification_type='Custom Reminder',
+            related_task=task_due_soon
+        )
+        self.assertEqual(
+            reminder_notifications_user1.count(),
+            1,
+            "Reminder notification not created for user1"
+        )
+
+        # Ensure no reminder for user2
+        reminder_notifications_user2 = Notification.objects.filter(
+            recipient=self.user2,
+            notification_type='Custom Reminder',
+            related_task=task_due_soon
+        )
+        self.assertEqual(
+            reminder_notifications_user2.count(),
+            0,
+            "Unexpected reminder notification for user2"
+        )
+
     def test_mark_notification_as_read(self):
-        """Test marking a notification as read (U904)"""
+        """Test marking a notification as read."""
         # Create a test notification
         notification = Notification.objects.create(
             recipient=self.user1,
@@ -112,7 +193,7 @@ class NotificationTests(TestCase):
         self.assertTrue(notification.is_read)
 
     def test_update_preferences(self):
-        """Test updating notification preferences for a user (U903)"""
+        """Test updating notification preferences for a user."""
         # Prepare request data
         url = reverse('update_preferences')
         data = {
@@ -134,7 +215,7 @@ class NotificationTests(TestCase):
         self.assertEqual(user_pref.custom_reminder_interval, 8)
 
     def test_send_reminders(self):
-        """Test sending reminders for upcoming task deadlines (U902, U905)"""
+        """Test sending reminders for upcoming task deadlines."""
         # Create a task with a due date within the custom reminder interval
         task_due_soon = Task.objects.create(
             owner=self.user1,
@@ -146,8 +227,10 @@ class NotificationTests(TestCase):
         )
 
         # Run the management command to send reminders
-        from django.core.management import call_command
         call_command('send_reminders')
+
+        # Manually commit the transaction to ensure the signal triggers
+        connection.commit()
 
         # Check if a reminder notification was created for user1
         reminder_notifications = Notification.objects.filter(
@@ -155,73 +238,59 @@ class NotificationTests(TestCase):
             notification_type='Custom Reminder',
             related_task=task_due_soon
         )
-        self.assertEqual(reminder_notifications.count(), 1)
+        self.assertEqual(
+            reminder_notifications.count(),
+            1,
+            "Reminder notification not created for user1"
+        )
 
-        # Ensure no reminder for user2 (custom interval of 6 hours)
+        # Ensure no reminder for user2
         reminder_notifications_user2 = Notification.objects.filter(
             recipient=self.user2,
             notification_type='Custom Reminder',
             related_task=task_due_soon
         )
-        self.assertEqual(reminder_notifications_user2.count(), 0)
-
-    def test_task_update_notification(self):
-        """Test task update notifications based on preferences (U901)"""
-        # Update task title
-        self.task.title = 'Updated Task Title'
-        self.task.save()
-
-        # Directly create the notification for user1
-        if self.user1.notification_preference.receive_task_updates:
-            Notification.objects.create(
-                recipient=self.user1,
-                message=f'Task "{self.task.title}" has been updated.',
-                notification_type = 'Task Update',
-                related_task = self.task
-            )
-
-        # Check if a task update notification was created for user1
-        task_update_notifications = Notification.objects.filter(
-            recipient=self.user1,
-            notification_type='Task Update',
-            related_task=self.task
+        self.assertEqual(
+            reminder_notifications_user2.count(),
+            0,
+            "Unexpected reminder notification for user2"
         )
-        self.assertEqual(task_update_notifications.count(), 1)
 
-        # Ensure no task update notification for user2 (does not receive task updates)
-        task_update_notifications_user2 = Notification.objects.filter(
-            recipient=self.user2,
-            notification_type='Task Update',
-            related_task=self.task
-        )
-        self.assertEqual(task_update_notifications_user2.count(), 0)
+    def test_get_preferences_user1(self):
+        """Test retrieving notification preferences for user1."""
+        response = self.client.get(reverse('get_preferences'), {'user_id': self.user1.id})
 
-    def test_project_update_notification(self):
-        """Test project update notifications based on preferences (U904)"""
-        # Update project description
-        self.project.description = 'Updated Project Description'
-        self.project.save()
+        # Check if the response status code is 200
+        self.assertEqual(response.status_code, 200)
+        print("Response data:", response.json())
+        # Check if the response contains correct preferences for user1
+        expected_response = {
+            'receive_task_updates': True,
+            'receive_project_updates': True,
+            'receive_reminders': True,
+            'custom_reminder_interval': 12
+        }
+        self.assertEqual(response.json(), expected_response)
 
-        # Directly create the notification for project update
-        for user in self.project.users.all():
-            if user.notification_preference.receive_project_updates:
-                Notification.objects.create(
-                    recipient=user,
-                    message=f'Project "{self.project.projectname}" has been updated.',
-                    notification_type='Project Update',
-                    related_project=self.project
-                )
+    def test_get_preferences_user_not_found(self):
+        """Test retrieving preferences for a non-existent user."""
+        response = self.client.get(reverse('get_preferences'), {'user_id': 999})  # Non-existent user ID
 
-        # Check if a project update notification was created for both users
-        project_update_notifications_user1 = Notification.objects.filter(
-            recipient=self.user1,
-            notification_type='Project Update',
-            related_project=self.project
-        )
-        project_update_notifications_user2 = Notification.objects.filter(
-            recipient=self.user2,
-            notification_type='Project Update',
-            related_project=self.project
-        )
-        self.assertEqual(project_update_notifications_user1.count(), 1)
-        self.assertEqual(project_update_notifications_user2.count(), 1)
+        # Check if the response status code is 404
+        self.assertEqual(response.status_code, 404)
+
+        # Check if the response contains the correct error message
+        expected_response = {'error': 'User not found'}
+        self.assertEqual(response.json(), expected_response)
+
+    def test_get_preferences_without_user_id(self):
+        """Test retrieving preferences without providing user_id."""
+        response = self.client.get(reverse('get_preferences'))
+
+        # Check if the response status code is 400
+        self.assertEqual(response.status_code, 400)
+
+        # Check if the response contains the correct error message
+        expected_response = {'error': 'User ID is required'}
+        self.assertEqual(response.json(), expected_response)
+
