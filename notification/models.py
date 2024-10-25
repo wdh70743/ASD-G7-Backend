@@ -6,6 +6,7 @@ class Notification(models.Model):
         ('Project Update', 'Project Update'),
         ('Reminder', 'Reminder'),
         ('Custom Reminder', 'Custom Reminder'),
+        ('Task Created', 'Task Created'),
     ]
 
     recipient = models.ForeignKey("users.User", related_name="notifications", on_delete=models.CASCADE)

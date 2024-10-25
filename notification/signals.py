@@ -6,18 +6,30 @@ from project.models import Project
 
 
 @receiver(post_save, sender=Task)
-def notify_task_update(sender, instance, created, **kwargs):
+def notify_task_creation_or_update(sender, instance, created, **kwargs):
     """
-    Creates a notification when a task is updated (not created).
+    Creates a notification when a task is created or updated.
     """
-    if not created:  # Only trigger on updates
-        print(f"Signal triggered for Task '{instance.title}' update.")
-        for user in instance.project.users.all():
+    # Get users associated with the project
+    users = instance.project.users.all()
+
+    if created:
+        # Trigger notification on task creation
+        for user in users:
+            Notification.objects.create(
+                recipient=user,
+                message=f'A new task "{instance.title}" has been created.',
+                notification_type='Task Created',
+                related_task=instance
+            )
+    else:
+        # Trigger notification on task update
+        for user in users:
             if user.notification_preference.receive_task_updates:
                 Notification.objects.create(
                     recipient=user,
                     message=f'Task "{instance.title}" has been updated.',
-                    notification_type='Task Update',
+                    notification_type='Task Created',
                     related_task=instance
                 )
             else:

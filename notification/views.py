@@ -6,7 +6,9 @@ from drf_yasg import openapi
 from notification.models import Notification, NotificationPreference
 from users.models import User
 from rest_framework.response import Response
-
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.decorators import authentication_classes
+from .authentication import CsrfExemptSessionAuthentication
 # --- List Notifications ---
 @swagger_auto_schema(
     method='get',
@@ -75,6 +77,7 @@ def notification_list(request):
 )
 @api_view(['PUT'])
 @csrf_exempt
+@authentication_classes([CsrfExemptSessionAuthentication, BasicAuthentication])
 def mark_notification_as_read(request, notification_id):
     user_id = request.GET.get('user_id')
     if not user_id:
@@ -119,6 +122,7 @@ def mark_notification_as_read(request, notification_id):
 )
 @api_view(['POST'])
 @csrf_exempt
+@authentication_classes([CsrfExemptSessionAuthentication, BasicAuthentication])
 def update_preferences(request):
     user_id = request.GET.get('user_id')
     if not user_id:
