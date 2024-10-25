@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'project',
     'drf_yasg',
     'notification',
+    'django_crontab',
 ]
 CORS_ORIGIN_ALLOW_ALL = True
 
@@ -88,6 +89,11 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+CRONJOBS = [
+    ('*/1 * * * *', 'notification.management.commands.send_reminders', '>> /tmp/cron.log 2>&1')
+]
+
+
 
 
 # Password validation
