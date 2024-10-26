@@ -39,7 +39,9 @@ def notify_task_creation_or_update(sender, instance, created, **kwargs):
 def notify_project_update(sender, instance, created, **kwargs):
     if not created:  # Only trigger on updates
         for user in instance.users.all():
-            if user.notification_preference.receive_project_updates:
+            print(user.email)
+            if hasattr(user,
+                       'notification_preference') and user.notification_preference and user.notification_preference.receive_project_updates:
                 Notification.objects.create(
                     recipient=user,
                     message=f'Project "{instance.projectname}" has been updated.',
