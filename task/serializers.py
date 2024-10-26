@@ -23,7 +23,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ['id', 'owner', 'priority', 'status', 'title', 'description', 'start_date', 'due_date', 'is_archived',
+        fields = ['id', 'project', 'owner', 'priority', 'status', 'title', 'description', 'start_date', 'due_date', 'is_archived',
                   'archived_at', 'created_at', 'updated_at', 'files', 'users']
 
 class TaskCreationSerializer(serializers.ModelSerializer):
@@ -40,7 +40,9 @@ class TaskCreationSerializer(serializers.ModelSerializer):
     )
     owner = serializers.IntegerField(write_only=True)
     project = serializers.IntegerField(write_only=True)
-
+    is_archived = serializers.BooleanField(required=False, default=False)
+    archived_at = serializers.DateTimeField(required=False)
+    description = serializers.CharField(required=False)
     class Meta:
         model = Task
         fields = ['id', 'owner', 'project', 'priority', 'status', 'title', 'description', 'start_date', 'due_date', 'is_archived',
