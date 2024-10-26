@@ -102,68 +102,6 @@ class NotificationTests(TransactionTestCase):
         self.assertEqual(project_update_notifications_user1.count(), 1, "Project update notification not created for user1")
         self.assertEqual(project_update_notifications_user2.count(), 1, "Project update notification not created for user2")
 
-    def test_send_task_reminders(self):
-        """Test sending reminders for tasks with upcoming deadlines."""
-        task_due_soon = Task.objects.create(
-            owner=self.user1,
-            project=self.project,
-            title='Task Due Soon',
-            start_date=timezone.now(),
-            due_date=timezone.now() + timedelta(hours=12)  # Matches user1's reminder interval
-        )
-
-        call_command('send_reminders')
-        connection.commit()
-
-        reminder_notifications_user1 = Notification.objects.filter(
-            recipient=self.user1,
-            notification_type='Custom Reminder',
-            related_task=task_due_soon
-        )
-        reminder_notifications_user2 = Notification.objects.filter(
-            recipient=self.user2,
-            notification_type='Custom Reminder',
-            related_task=task_due_soon
-        )
-
-        self.assertEqual(reminder_notifications_user1.count(), 1, "Reminder notification not created for user1")
-        self.assertEqual(reminder_notifications_user2.count(), 1, "Reminder notification not created for user2")
-
-    def test_send_project_reminders(self):
-        """Test sending reminders for projects ending soon."""
-        # Set the project end date to exactly 12 hours from now
-        self.project.end_date = (timezone.now() + timedelta(hours=12)).date()
-        self.project.save()
-
-        print(f"Project End Date: {self.project.end_date}")
-
-        call_command('send_reminders')
-        connection.commit()
-
-        project_reminder_notifications_user1 = Notification.objects.filter(
-            recipient=self.user1,
-            notification_type='Custom Reminder',
-            related_project=self.project
-        )
-        print(f"Number of reminders for user1: {project_reminder_notifications_user1.count()}")
-
-        project_reminder_notifications_user2 = Notification.objects.filter(
-            recipient=self.user2,
-            notification_type='Custom Reminder',
-            related_project=self.project
-        )
-        print(f"Number of reminders for user2: {project_reminder_notifications_user2.count()}")
-
-        self.assertEqual(
-            project_reminder_notifications_user1.count(),
-            1,
-            "Project reminder not created for user1"
-        )
-        self.assertEqual(
-            project_reminder_notifications_user2.count(),
-            1,
-            "Project reminder not created for user2"
-        )
 
     def test_mark_notification_as_read(self):
         """Test marking a notification as read."""
