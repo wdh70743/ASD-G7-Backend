@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from notification.models import Notification, NotificationPreference
+from .models import Notification, NotificationPreference
 from users.models import User
 from rest_framework.response import Response
 from rest_framework.authentication import BasicAuthentication
@@ -48,6 +48,7 @@ def notification_list(request):
     notifications = Notification.objects.filter(recipient=user)
     response = [
         {
+            'id': n.id,
             'message': n.message,
             'type': n.notification_type,
             'is_read': n.is_read,
