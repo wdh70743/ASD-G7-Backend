@@ -20,6 +20,7 @@ class UserTaskSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     files = TaskFileSerializer(many=True, read_only=True)  # Related TaskFile instances
     users = UserTaskSerializer(source='user_tasks', many=True, read_only=True)
+    archived_at = serializers.DateTimeField(required=False)
 
     class Meta:
         model = Task
