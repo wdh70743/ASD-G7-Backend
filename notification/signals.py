@@ -1,8 +1,9 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from notification.models import Notification
+from .models import Notification, NotificationPreference
 from task.models import Task
 from project.models import Project
+from users.models import User
 
 
 @receiver(post_save, sender=Task)
@@ -48,3 +49,20 @@ def notify_project_update(sender, instance, created, **kwargs):
                     notification_type='Project Update',
                     related_project=instance
                 )
+@receiver(post_save, sender=User)
+def create_notification_preferences(sender, instance, created, **kwargs):
+    """
+    Signal to automatically create NotificationPreference when a new user is created
+    """
+    if created:  # 새로운 유저가 생성될 때만
+        NotificationPreference.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_notification_preferences(sender, instance, **kwargs):
+    """
+    Signal to save NotificationPreference if User is updated
+    """
+    try:
+        instance.notification_preference.save()
+    except NotificationPreference.DoesNotExist:
+        NotificationPreference.objects.create(user=instance)
